@@ -1,0 +1,101 @@
+---
+# volumen persistente
+apiVersion: v1
+kind: PersistentVolume #espacio en el que vivira
+metadata:
+  name: pv-act3-redis
+spec: #Configuración de lo que va a contruir a nivel de disco
+  storageClassName: redis-storage
+  capacity:
+    storage: 10Gi # Capacidad
+  accessModes:
+    - ReadWriteMany # Lectura y escritura
+  hostPath:
+    path: "/mnt/redis" # Lugar donde guardara los datos
+
+---
+# reclamo de volumen
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: pvc-act3-redis
+spec:
+  storageClassName: redis-storage
+  accessModes:
+    - ReadWriteMany
+  resources: #Configuración de lo que va a reclamar
+    requests:
+      storage: 5Gi
+
+---
+# storage class
+
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: redis-storage
+  namespace: axel-2-namespace
+provisioner: kubernetes.io/no-provisioner # no-provisioner -> Entorno de de infraestructura local
+reclaimPolicy: Retain # Que realizara con mis datos // preserva la integridad de mis datos
+volumeBindingMode: WaitForFirstConsumer
+
+---
+# configmap redis
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: redis-config
+  labels:
+    app: redis-config
+data:
+  REDIS_DB: "db1"
+  REDIS_MASTER_PASSWORD: "admin"
+
+---
+#deploy
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis-ac3-deploy
+  labels:
+    app: redis-ac3-deploy
+spec:
+  selector:
+    matchLabels:
+      app: redis-ac3-deploy # no se que es pero creo que es para poder machearlo con el servixe
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: redis-ac3-deploy
+    spec:
+      containers:
+        - name: redis
+          image: redis:6
+          ports:
+            - containerPort: 6379
+              protocol: TCP
+          envFrom:
+            - configMapRef:
+                name: redis-config
+          volumeMounts:
+            - mountPath: /data
+              name: redis-deploy-a3
+      volumes:
+        - name: redis-deploy-a3
+          persistentVolumeClaim:
+            claimName: pvc-act3-redis
+
+---
+# service
+apiVersion: v1
+kind: Service
+metadata:
+  name: loadbalancer-ac3-redis
+spec:
+  selector:
+    app: redis-ac3-deploy
+  ports:
+    - port: 5301
+      targetPort: 6379
+  type: LoadBalancer

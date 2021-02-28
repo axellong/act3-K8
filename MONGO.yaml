@@ -1,0 +1,107 @@
+# volumen persistente
+apiVersion: v1
+kind: PersistentVolume #espacio en el que vivira
+metadata:
+  name: pv-act3-mongo
+spec: #Configuración de lo que va a contruir a nivel de disco
+  storageClassName: mongo-storage
+  capacity:
+    storage: 10Gi # Capacidad
+  accessModes:
+    - ReadWriteMany # Lectura y escritura
+  hostPath:
+    path: "/mnt/mongo" # Lugar donde guardara los datos
+
+
+---
+# reclamo de volumen
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: pvc-act3-mongo
+spec:
+  storageClassName: mongo-storage
+  accessModes:
+    - ReadWriteMany
+  resources: #Configuración de lo que va a reclamar
+    requests:
+      storage: 5Gi
+
+    
+---
+# storage class
+
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: mongo-storage
+provisioner: kubernetes.io/no-provisioner # no-provisioner -> Entorno de de infraestructura local
+reclaimPolicy: Retain # Que realizara con mis datos // preserva la integridad de mis datos
+volumeBindingMode: WaitForFirstConsumer
+
+
+---
+
+# configmap mongo
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mongo-config
+  labels:
+    app: mongo-config
+data:
+  MONGO_INITDB_DATABASE: "db1"
+  MONGO_USER: "1234"
+  MONGO_PASSWORD: "axel"
+
+
+---
+#deploy mongo
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mongo-ac3-deploy
+  labels:
+    app: mongo-ac3-deploy
+spec:
+  selector:
+    matchLabels:
+      app: mongo-ac3-deploy # no se que es pero creo que es para poder machearlo con el servixe
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: mongo-ac3-deploy
+    spec:
+      containers:
+        - name: mongo
+          image: mongo:4.1.7
+          ports:
+            - containerPort: 27017
+              protocol: TCP
+          envFrom:
+            - configMapRef:
+                name: mongo-config
+          volumeMounts:
+            - mountPath: /data/db
+              name: mongo-deploy-a3
+      volumes:
+        - name: mongo-deploy-a3
+          persistentVolumeClaim:
+            claimName: pvc-act3-mongo
+
+
+---
+
+#service mongo
+apiVersion: v1
+kind: Service
+metadata:
+  name: loadbalancer-ac3-mongo
+spec:
+  selector:
+    app: mongo-ac3-deploy
+  ports:
+    - port: 5302
+      targetPort:  27017
+  type: LoadBalancer

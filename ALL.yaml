@@ -1,0 +1,420 @@
+
+# volumen persistente
+apiVersion: v1
+kind: PersistentVolume #espacio en el que vivira
+metadata:
+  name: pv-act3-mysql
+spec: #Configuración de lo que va a contruir a nivel de disco
+  storageClassName: mysql-storage
+  capacity:
+    storage: 10Gi # Capacidad
+  accessModes:
+    - ReadWriteMany # Lectura y escritura
+  hostPath:
+    path: "/mnt/mysql" # Lugar donde guardara los datos
+
+---
+# reclamo de volumen
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: pvc-act3-mysql
+spec:
+  storageClassName: mysql-storage
+  accessModes:
+    - ReadWriteMany
+  resources: #Configuración de lo que va a reclamar
+    requests:
+      storage: 5Gi
+
+---
+# storage class
+
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: mysql-storage
+  namespace: axel-2-namespace
+provisioner: kubernetes.io/no-provisioner # no-provisioner -> Entorno de de infraestructura local
+reclaimPolicy: Retain # Que realizara con mis datos // preserva la integridad de mis datos
+volumeBindingMode: WaitForFirstConsumer
+
+---
+# configmap mysql
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mysql-config
+  labels:
+    app: mysql-config
+data:
+  MYSQL_DATABASE: "db1mysql"
+  MYSQL_ROOT_PASSWORD: "1234"
+
+---
+#deploy mysql
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mysql-ac3-deploy
+spec:
+  selector:
+    matchLabels:
+      app: mysql-ac3-deploy
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: mysql-ac3-deploy
+    spec:
+      containers:
+        - name: mysql
+          image: mysql:8
+          ports:
+            - containerPort: 3306
+          envFrom:
+            - configMapRef:
+                name: mysql-config
+          volumeMounts:
+            - mountPath: /var/lib/mysql
+              name: mysql-deploy-a3
+      volumes:
+        - name: mysql-deploy-a3
+          persistentVolumeClaim:
+            claimName: pvc-act3-mysql
+
+---
+#service mysql
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: loadbalancer-ac3-mysql
+spec:
+  selector:
+    app: mysql-ac3-deploy
+  ports:
+    - port: 5303
+      targetPort: 3306
+  type: LoadBalancer
+
+#-----------------------------------------------------------------POSTGRES--------------------------------------------------------------------
+---
+# volumen persistente
+apiVersion: v1
+kind: PersistentVolume #espacio en el que vivira
+metadata:
+  name: pv-act3-postgres
+spec: #Configuración de lo que va a contruir a nivel de disco
+  storageClassName: postgres-storage
+  capacity:
+    storage: 10Gi # Capacidad
+  accessModes:
+    - ReadWriteMany # Lectura y escritura
+  hostPath:
+    path: "/mnt/ac3-postgres" # Lugar donde guardara los datos
+
+---
+# reclamo de volumen
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: pvc-act3-postgres
+spec:
+  storageClassName: postgres-storage
+  accessModes:
+    - ReadWriteMany
+  resources: #Configuración de lo que va a reclamar
+    requests:
+      storage: 5Gi
+
+---
+# storage class
+
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: postgres-storage
+  namespace: axel-2-namespace
+provisioner: kubernetes.io/no-provisioner # no-provisioner -> Entorno de de infraestructura local
+reclaimPolicy: Retain # Que realizara con mis datos // preserva la integridad de mis datos
+volumeBindingMode: WaitForFirstConsumer
+
+---
+# configmap postgres
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres-config
+  labels:
+    app: postgres-config
+data:
+  POSTGRES_DB: db1pg
+  POSTGRES_USER: adminpg
+  POSTGRES_PASSWORD: admin123
+
+---
+#deploy postgres
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres-ac3-deploy
+  labels:
+    app: postgres-ac3-deploy
+spec:
+  selector:
+    matchLabels:
+      app: postgres-ac3-deploy # no se que es pero creo que es para poder machearlo con el servixe
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: postgres-ac3-deploy
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:11
+          ports:
+            - containerPort: 5432
+          envFrom:
+            - configMapRef:
+                name: postgres-config
+          volumeMounts:
+            - mountPath: /var/lib/postgresql/data
+              name: postgres-deploy-a3
+      volumes:
+        - name: postgres-deploy-a3
+          persistentVolumeClaim:
+            claimName: pvc-act3-postgres
+
+---
+#service postgres
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: loadbalancer-ac3-postgres
+spec:
+  selector:
+    app: postgres-ac3-deploy
+  ports:
+    - port: 5300
+      targetPort: 5432
+  type: LoadBalancer
+
+---
+
+#--------------------------------------------------------REDIS-------------------------------------------------------------------------------
+# volumen persistente
+apiVersion: v1
+kind: PersistentVolume #espacio en el que vivira
+metadata:
+  name: pv-act3-redis
+spec: #Configuración de lo que va a contruir a nivel de disco
+  storageClassName: redis-storage
+  capacity:
+    storage: 10Gi # Capacidad
+  accessModes:
+    - ReadWriteMany # Lectura y escritura
+  hostPath:
+    path: "/mnt/redis" # Lugar donde guardara los datos
+
+---
+# reclamo de volumen
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: pvc-act3-redis
+spec:
+  storageClassName: redis-storage
+  accessModes:
+    - ReadWriteMany
+  resources: #Configuración de lo que va a reclamar
+    requests:
+      storage: 5Gi
+
+---
+# storage class
+
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: redis-storage
+  namespace: axel-2-namespace
+provisioner: kubernetes.io/no-provisioner # no-provisioner -> Entorno de de infraestructura local
+reclaimPolicy: Retain # Que realizara con mis datos // preserva la integridad de mis datos
+volumeBindingMode: WaitForFirstConsumer
+
+---
+# configmap redis
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: redis-config
+  labels:
+    app: redis-config
+data:
+  REDIS_DB: "db1"
+  REDIS_MASTER_PASSWORD: "admin"
+
+---
+#deploy
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis-ac3-deploy
+  labels:
+    app: redis-ac3-deploy
+spec:
+  selector:
+    matchLabels:
+      app: redis-ac3-deploy # no se que es pero creo que es para poder machearlo con el servixe
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: redis-ac3-deploy
+    spec:
+      containers:
+        - name: redis
+          image: redis:6
+          ports:
+            - containerPort: 6379
+              protocol: TCP
+          envFrom:
+            - configMapRef:
+                name: redis-config
+          volumeMounts:
+            - mountPath: /data
+              name: redis-deploy-a3
+      volumes:
+        - name: redis-deploy-a3
+          persistentVolumeClaim:
+            claimName: pvc-act3-redis
+
+---
+# service
+apiVersion: v1
+kind: Service
+metadata:
+  name: loadbalancer-ac3-redis
+spec:
+  selector:
+    app: redis-ac3-deploy
+  ports:
+    - port: 5301
+      targetPort: 6379
+  type: LoadBalancer
+
+
+---
+#--------------------------------------------------------mongo-------------------------------------------------------------------------------
+
+
+# volumen persistente
+apiVersion: v1
+kind: PersistentVolume #espacio en el que vivira
+metadata:
+  name: pv-act3-mongo
+spec: #Configuración de lo que va a contruir a nivel de disco
+  storageClassName: mongo-storage
+  capacity:
+    storage: 10Gi # Capacidad
+  accessModes:
+    - ReadWriteMany # Lectura y escritura
+  hostPath:
+    path: "/mnt/mongo" # Lugar donde guardara los datos
+
+
+---
+# reclamo de volumen
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: pvc-act3-mongo
+spec:
+  storageClassName: mongo-storage
+  accessModes:
+    - ReadWriteMany
+  resources: #Configuración de lo que va a reclamar
+    requests:
+      storage: 5Gi
+
+    
+---
+# storage class
+
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: mongo-storage
+provisioner: kubernetes.io/no-provisioner # no-provisioner -> Entorno de de infraestructura local
+reclaimPolicy: Retain # Que realizara con mis datos // preserva la integridad de mis datos
+volumeBindingMode: WaitForFirstConsumer
+
+
+---
+
+# configmap mongo
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mongo-config
+  labels:
+    app: mongo-config
+data:
+  MONGO_INITDB_DATABASE: "db1"
+  MONGO_USER: "1234"
+  MONGO_PASSWORD: "axel"
+
+
+---
+#deploy mongo
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mongo-ac3-deploy
+  labels:
+    app: mongo-ac3-deploy
+spec:
+  selector:
+    matchLabels:
+      app: mongo-ac3-deploy # no se que es pero creo que es para poder machearlo con el servixe
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: mongo-ac3-deploy
+    spec:
+      containers:
+        - name: mongo
+          image: mongo:4.1.7
+          ports:
+            - containerPort: 27017
+              protocol: TCP
+          envFrom:
+            - configMapRef:
+                name: mongo-config
+          volumeMounts:
+            - mountPath: /data/db
+              name: mongo-deploy-a3
+      volumes:
+        - name: mongo-deploy-a3
+          persistentVolumeClaim:
+            claimName: pvc-act3-mongo
+
+
+---
+
+#service mongo
+apiVersion: v1
+kind: Service
+metadata:
+  name: loadbalancer-ac3-mongo
+spec:
+  selector:
+    app: mongo-ac3-deploy
+  ports:
+    - port: 5302 
+      targetPort: 27017
+  type: LoadBalancer

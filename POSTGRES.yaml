@@ -1,0 +1,102 @@
+---
+# volumen persistente
+apiVersion: v1
+kind: PersistentVolume #espacio en el que vivira
+metadata:
+  name: pv-act3-postgres
+spec: #Configuración de lo que va a contruir a nivel de disco
+  storageClassName: postgres-storage
+  capacity:
+    storage: 10Gi # Capacidad
+  accessModes:
+    - ReadWriteMany # Lectura y escritura
+  hostPath:
+    path: "/mnt/ac3-postgres" # Lugar donde guardara los datos
+
+---
+# reclamo de volumen
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: pvc-act3-postgres
+spec:
+  storageClassName: postgres-storage
+  accessModes:
+    - ReadWriteMany
+  resources: #Configuración de lo que va a reclamar
+    requests:
+      storage: 5Gi
+
+---
+# storage class
+
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: postgres-storage
+  namespace: axel-2-namespace
+provisioner: kubernetes.io/no-provisioner # no-provisioner -> Entorno de de infraestructura local
+reclaimPolicy: Retain # Que realizara con mis datos // preserva la integridad de mis datos
+volumeBindingMode: WaitForFirstConsumer
+
+---
+# configmap postgres
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres-config
+  labels:
+    app: postgres-config
+data:
+  POSTGRES_DB: db1pg
+  POSTGRES_USER: adminpg
+  POSTGRES_PASSWORD: admin123
+
+---
+#deploy postgres
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres-ac3-deploy
+  labels:
+    app: postgres-ac3-deploy
+spec:
+  selector:
+    matchLabels:
+      app: postgres-ac3-deploy # no se que es pero creo que es para poder machearlo con el servixe
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: postgres-ac3-deploy
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:11
+          ports:
+            - containerPort: 5432
+          envFrom:
+            - configMapRef:
+                name: postgres-config
+          volumeMounts:
+            - mountPath: /var/lib/postgresql/data
+              name: postgres-deploy-a3
+      volumes:
+        - name: postgres-deploy-a3
+          persistentVolumeClaim:
+            claimName: pvc-act3-postgres
+
+---
+#service postgres
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: loadbalancer-ac3-postgres
+spec:
+  selector:
+    app: postgres-ac3-deploy
+  ports:
+    - port: 5300
+      targetPort: 5432
+  type: LoadBalancer

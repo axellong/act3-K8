@@ -311,7 +311,7 @@ spec:
 apiVersion: v1
 kind: PersistentVolume #espacio en el que vivira
 metadata:
-  name: pv-act3-mongo
+  name: pv-act3-mongo-p1
 spec: #Configuración de lo que va a contruir a nivel de disco
   storageClassName: mongo-storage
   capacity:
@@ -326,7 +326,7 @@ spec: #Configuración de lo que va a contruir a nivel de disco
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: pvc-act3-mongo
+  name: pvc-act3-mongo-p1
 spec:
   storageClassName: mongo-storage
   accessModes:
@@ -355,9 +355,9 @@ metadata:
   labels:
     app: mongo-config
 data:
+  MONGO_INITDB_ROOT_PASSWORD: "1234"
   MONGO_INITDB_ROOT_USERNAME: "axel"
-  MONGO_INITDB_ROOT_PASSWORD: "admin"
-  MONGO_INITDB_DATABASE: "BD1"
+  MONGO_INITDB_DATABASE: "dataBase"
 
 ---
 #deploy mongo
@@ -388,11 +388,11 @@ spec:
                 name: mongo-config
           volumeMounts:
             - mountPath: /data/db
-              name: mongo-deploy-a3-ss1
+              name: mongo-deploy-a3
       volumes:
-        - name: mongo-deploy-a3-ss1
+        - name: mongo-deploy-a3
           persistentVolumeClaim:
-            claimName: pvc-act3-mongo
+            claimName: pvc-act3-mongo-p1
 
 ---
 #service mongo

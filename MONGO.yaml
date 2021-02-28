@@ -1,8 +1,9 @@
+
 # volumen persistente
 apiVersion: v1
 kind: PersistentVolume #espacio en el que vivira
 metadata:
-  name: pv-act3-mongo
+  name: pv-act3-mongo-p1
 spec: #Configuración de lo que va a contruir a nivel de disco
   storageClassName: mongo-storage
   capacity:
@@ -12,13 +13,12 @@ spec: #Configuración de lo que va a contruir a nivel de disco
   hostPath:
     path: "/mnt/mongo" # Lugar donde guardara los datos
 
-
 ---
 # reclamo de volumen
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: pvc-act3-mongo
+  name: pvc-act3-mongo-p1
 spec:
   storageClassName: mongo-storage
   accessModes:
@@ -27,7 +27,6 @@ spec:
     requests:
       storage: 5Gi
 
-    
 ---
 # storage class
 
@@ -39,9 +38,7 @@ provisioner: kubernetes.io/no-provisioner # no-provisioner -> Entorno de de infr
 reclaimPolicy: Retain # Que realizara con mis datos // preserva la integridad de mis datos
 volumeBindingMode: WaitForFirstConsumer
 
-
 ---
-
 # configmap mongo
 apiVersion: v1
 kind: ConfigMap
@@ -50,10 +47,10 @@ metadata:
   labels:
     app: mongo-config
 data:
-  MONGO_INITDB_DATABASE: "db1"
-  MONGO_USER: "1234"
-  MONGO_PASSWORD: "axel"
-
+  MONGO_INITDB_ROOT_PASSWORD: "1234"
+  MONGO_INITDB_ROOT_USERNAME: "axel"
+  MONGO_INITDB_DATABASE: "dataBase"
+  
 
 ---
 #deploy mongo
@@ -88,11 +85,9 @@ spec:
       volumes:
         - name: mongo-deploy-a3
           persistentVolumeClaim:
-            claimName: pvc-act3-mongo
-
+            claimName: pvc-act3-mongo-p1
 
 ---
-
 #service mongo
 apiVersion: v1
 kind: Service
@@ -103,5 +98,5 @@ spec:
     app: mongo-ac3-deploy
   ports:
     - port: 5302
-      targetPort:  27017
+      targetPort: 27017
   type: LoadBalancer

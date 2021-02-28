@@ -11,14 +11,14 @@ kubectl delete -n axel-2-namespace deployment redis-ac3-deploy
 kubectl delete -n axel-2-namespace deployment postgres-ac3-deploy
 
 echo Eliminando reclamos de volumen
-kubectl delete -n axel-2-namespace persistentvolumeclaim pvc-act3-mongo
+kubectl delete -n axel-2-namespace persistentvolumeclaim pvc-act3-mongo-p1
 kubectl delete -n axel-2-namespace persistentvolumeclaim pvc-act3-mysql
 kubectl delete -n axel-2-namespace persistentvolumeclaim pvc-act3-redis
 kubectl delete -n axel-2-namespace persistentvolumeclaim pvc-act3-postgres
 
 
 echo Eliminando volumenpersistente
-kubectl delete persistentvolume pv-act3-mongo
+kubectl delete persistentvolume pv-act3-mongo-p1
 kubectl delete persistentvolume pv-act3-mysql
 kubectl delete persistentvolume pv-act3-redis
 kubectl delete persistentvolume pv-act3-postgres
